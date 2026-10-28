@@ -287,14 +287,14 @@
     if (!text) return;
     try {
       await navigator.clipboard.writeText(text);
-      setStatus("已复制，去游戏里点右上角相框按钮", "ok");
+      setStatus("已复制，回游戏点右上角「＋ 我的照片」", "ok");
     } catch (e) {
       const ta = $("code");
       ta.focus();
       ta.select();
       let ok = false;
       try { ok = document.execCommand("copy"); } catch (_) { ok = false; }
-      setStatus(ok ? "已复制，去游戏里点右上角相框按钮" : "已选中图纸码，请长按或按 Ctrl+C 复制", ok ? "ok" : "");
+      setStatus(ok ? "已复制，回游戏点右上角「＋ 我的照片」" : "已选中图纸码，请长按或按 Ctrl+C 复制", ok ? "ok" : "");
     }
   }
 
