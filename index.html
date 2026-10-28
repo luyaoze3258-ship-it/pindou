@@ -1,0 +1,320 @@
+<title>照片拼豆图纸</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=ZCOOL+KuaiLe&family=JetBrains+Mono:wght@500&display=swap">
+<style>
+  /* 布局：桌面左操作右钉板，手机钉板在上；钉板是主角，用料清单像材料包标签 */
+  :root {
+    --bg: #eef0f7;
+    --surface: #ffffff;
+    --board: #dae1f2;
+    --board-edge: #b0bad6;
+    --peg: #c3cbe2;
+    --ink: #2b2540;
+    --muted: #6d6880;
+    --line: #dcdcea;
+    --accent: #ff5c8a;
+    --accent-ink: #ffffff;
+    --ok: #1f9d6b;
+    --display: "ZCOOL KuaiLe", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+    --body: -apple-system, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Segoe UI", sans-serif;
+    --mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #16151d; --surface: #211f2b; --board: #2d3246; --board-edge: #1f2333; --peg: #3b4159;
+      --ink: #f1eef8; --muted: #a29db3; --line: #34313f; --accent: #ff7aa0; --accent-ink: #1b0b12; --ok: #4fd1a0;
+      color-scheme: dark;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #16151d; --surface: #211f2b; --board: #2d3246; --board-edge: #1f2333; --peg: #3b4159;
+    --ink: #f1eef8; --muted: #a29db3; --line: #34313f; --accent: #ff7aa0; --accent-ink: #1b0b12; --ok: #4fd1a0;
+    color-scheme: dark;
+  }
+  * { box-sizing: border-box; }
+  body {
+    background: var(--bg); color: var(--ink); font-family: var(--body); font-size: 15px; line-height: 1.6;
+    padding-left: max(16px, env(safe-area-inset-left, 0px));
+    padding-right: max(16px, env(safe-area-inset-right, 0px));
+    padding-block: 20px 40px;
+  }
+  .wrap { max-width: 1080px; margin: 0 auto; display: grid; gap: 20px; }
+  header { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 16px; }
+  h1 { font-family: var(--display); font-weight: 400; font-size: clamp(28px, 6vw, 40px); margin: 0; letter-spacing: 0.02em; text-wrap: balance; }
+  header p { margin: 0; color: var(--muted); }
+  .main { display: grid; gap: 20px; grid-template-columns: minmax(0, 1fr); }
+  @media (min-width: 820px) { .main { grid-template-columns: 340px minmax(0, 1fr); align-items: start; } .stage { order: 2; } }
+
+  .panel { background: var(--surface); border: 1px solid var(--line); border-radius: 18px; padding: 18px; display: grid; gap: 18px; min-width: 0; }
+  .drop { border: 2px dashed var(--board-edge); border-radius: 14px; padding: 14px; display: flex; gap: 12px; align-items: center; cursor: pointer; transition: border-color .15s, background .15s; }
+  .drop:hover, .drop.over { border-color: var(--accent); }
+  .drop:focus-within { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .drop img { width: 64px; height: 64px; object-fit: cover; border-radius: 10px; background: var(--board); flex: none; }
+  .drop b { display: block; }
+  .drop span { color: var(--muted); font-size: 13px; }
+  .drop input { position: absolute; width: 1px; height: 1px; opacity: 0; }
+  .field { display: grid; gap: 6px; }
+  .field label { display: flex; justify-content: space-between; font-weight: 600; }
+  .field output { font-family: var(--mono); font-variant-numeric: tabular-nums; color: var(--accent); }
+  .field small { color: var(--muted); }
+  input[type="range"] { width: 100%; accent-color: var(--accent); }
+  .check { display: flex; gap: 8px; align-items: center; }
+  .check input { accent-color: var(--accent); width: 18px; height: 18px; }
+
+  .stage { display: grid; gap: 14px; min-width: 0; }
+  .board-wrap { background: var(--board); border-radius: 22px; box-shadow: 0 5px 0 var(--board-edge); padding: 14px; display: grid; place-items: center; min-height: 260px; }
+  canvas#board { max-width: 100%; height: auto; display: block; }
+  .meta { display: flex; flex-wrap: wrap; gap: 8px 18px; color: var(--muted); font-variant-numeric: tabular-nums; }
+  .meta strong { color: var(--ink); }
+  .kit { display: flex; flex-wrap: wrap; gap: 8px; margin: 0; padding: 0; list-style: none; }
+  .kit li { display: flex; align-items: center; gap: 6px; background: var(--surface); border: 1px solid var(--line); border-radius: 999px; padding: 3px 10px 3px 4px; font-size: 13px; font-variant-numeric: tabular-nums; }
+  .kit i { width: 18px; height: 18px; border-radius: 50%; box-shadow: inset 0 -2px 0 rgba(0,0,0,.18); flex: none; }
+
+  .code { display: grid; gap: 10px; }
+  .code h2, .steps h2 { font-family: var(--display); font-weight: 400; font-size: 20px; margin: 0; }
+  textarea { width: 100%; min-height: 84px; resize: vertical; font-family: var(--mono); font-size: 12px; line-height: 1.5; color: var(--ink); background: var(--bg); border: 1px solid var(--line); border-radius: 10px; padding: 10px; word-break: break-all; }
+  .actions { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+  button { font: inherit; font-weight: 700; border: 0; border-radius: 12px; padding: 11px 18px; background: var(--accent); color: var(--accent-ink); cursor: pointer; box-shadow: 0 3px 0 color-mix(in srgb, var(--accent) 60%, #000); }
+  button:active { transform: translateY(2px); box-shadow: 0 1px 0 color-mix(in srgb, var(--accent) 60%, #000); }
+  button:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+  button:disabled { opacity: .5; cursor: default; }
+  .status { font-size: 13px; color: var(--muted); }
+  .status.ok { color: var(--ok); font-weight: 600; }
+  .status.err { color: var(--accent); font-weight: 600; }
+  .steps ol { margin: 6px 0 0; padding-left: 1.3em; display: grid; gap: 4px; }
+  .steps li::marker { font-family: var(--mono); color: var(--accent); }
+  .note { font-size: 13px; color: var(--muted); margin: 0; }
+  @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+
+<div class="wrap">
+  <header>
+    <h1>照片拼豆图纸</h1>
+    <p>上传一张照片，变成能在《照片拼豆屋》里拼的图纸</p>
+  </header>
+
+  <div class="main">
+    <section class="stage" aria-label="图纸预览">
+      <div class="board-wrap"><canvas id="board" width="600" height="600" aria-label="拼豆图纸预览"></canvas></div>
+      <div class="meta" id="meta"></div>
+      <ul class="kit" id="kit" aria-label="用料清单"></ul>
+    </section>
+
+    <div class="panel">
+      <label class="drop" id="drop">
+        <img id="thumb" src="sample.png" alt="当前照片">
+        <div><b id="srcName">示例：草莓</b><span>点这里换成你的照片，也可以拖进来或直接粘贴</span></div>
+        <input type="file" id="file" accept="image/*">
+      </label>
+
+      <div class="field">
+        <label for="size">宽度 <output id="sizeOut" for="size">28 格</output></label>
+        <input type="range" id="size" min="16" max="40" step="1" value="28">
+        <small>格数越多越像照片，拼的时间也越长</small>
+      </div>
+      <div class="field">
+        <label for="colors">颜色 <output id="colorsOut" for="colors">8 色</output></label>
+        <input type="range" id="colors" min="3" max="12" step="1" value="8">
+        <small>颜色少更像卡通，多更像照片</small>
+      </div>
+      <label class="check"><input type="checkbox" id="bg" checked> 自动去掉背景</label>
+
+      <div class="code">
+        <h2>图纸码</h2>
+        <textarea id="code" readonly aria-label="图纸码"></textarea>
+        <div class="actions">
+          <button id="copy" type="button">复制图纸码</button>
+          <span class="status" id="status" role="status"></span>
+        </div>
+      </div>
+
+      <div class="steps">
+        <h2>怎么拼</h2>
+        <ol>
+          <li>调到满意后点「复制图纸码」</li>
+          <li>打开《照片拼豆屋》，点主界面右上角的「＋ 我的照片」</li>
+          <li>游戏会读取剪贴板，生成一单你的专属订单</li>
+        </ol>
+      </div>
+      <p class="note">照片只在你的浏览器里处理，不会上传到任何服务器。</p>
+    </div>
+  </div>
+</div>
+
+<script src="palette.js"></script>
+<script src="pindou-core.js"></script>
+<script>
+(function () {
+  "use strict";
+  const C = window.PindouCore, PAL = window.PINDOU_PALETTE, NAMES = window.PINDOU_PALETTE_NAMES;
+  const MAX_SRC = 512; // 原图先缩到这个尺寸再处理，手机上也够快
+  const BEAD_MM = 5;   // 标准拼豆直径 5mm
+
+  const $ = (id) => document.getElementById(id);
+  const board = $("board"), ctx = board.getContext("2d");
+  let src = null;      // { data, w, h }
+  let pattern = null;
+  let pending = 0;
+
+  function setStatus(msg, kind) { const s = $("status"); s.textContent = msg; s.className = "status" + (kind ? " " + kind : ""); }
+
+  function loadImage(url, name) {
+    const img = new Image();
+    img.onload = () => {
+      const k = Math.min(1, MAX_SRC / Math.max(img.width, img.height));
+      const w = Math.max(1, Math.round(img.width * k)), h = Math.max(1, Math.round(img.height * k));
+      const cv = document.createElement("canvas");
+      cv.width = w; cv.height = h;
+      const c = cv.getContext("2d");
+      c.imageSmoothingQuality = "high";
+      c.drawImage(img, 0, 0, w, h);
+      src = { data: c.getImageData(0, 0, w, h).data, w, h };
+      $("thumb").src = url;
+      $("srcName").textContent = name;
+      schedule();
+    };
+    img.onerror = () => setStatus("这张图片读不出来，换一张 JPG 或 PNG 试试", "err");
+    img.src = url;
+  }
+
+  function loadFile(file) {
+    if (!file || !file.type.startsWith("image/")) { setStatus("请选择图片文件", "err"); return; }
+    const reader = new FileReader();
+    reader.onload = () => loadImage(reader.result, file.name || "我的照片");
+    reader.onerror = () => setStatus("读取文件失败，请重试", "err");
+    reader.readAsDataURL(file);
+  }
+
+  /** 浏览器端缩放：先把（已去背景的）像素放回 canvas，再平滑缩放裁剪区域 */
+  function resizeCanvas(data, w, h, crop, ow, oh) {
+    const a = document.createElement("canvas");
+    a.width = w; a.height = h;
+    a.getContext("2d").putImageData(new ImageData(data, w, h), 0, 0);
+    const b = document.createElement("canvas");
+    b.width = ow; b.height = oh;
+    const c = b.getContext("2d");
+    c.imageSmoothingQuality = "high";
+    c.drawImage(a, crop.x, crop.y, crop.w, crop.h, 0, 0, ow, oh);
+    return c.getImageData(0, 0, ow, oh).data;
+  }
+
+  function schedule() {
+    $("sizeOut").textContent = $("size").value + " 格";
+    $("colorsOut").textContent = $("colors").value + " 色";
+    cancelAnimationFrame(pending);
+    pending = requestAnimationFrame(run);
+  }
+
+  function run() {
+    if (!src) return;
+    pattern = C.fromImage(src.data, src.w, src.h,
+      { size: +$("size").value, colors: +$("colors").value, removeBackground: $("bg").checked }, PAL, resizeCanvas);
+    if (!pattern) {
+      $("code").value = "";
+      $("copy").disabled = true;
+      setStatus("背景去掉后什么都不剩了，试试关掉「自动去掉背景」", "err");
+      draw(null);
+      return;
+    }
+    const beads = pattern.cells.filter((c) => c > 0).length;
+    $("code").value = C.encode(pattern);
+    $("copy").disabled = beads < 10 || pattern.h > 48;
+    setStatus(pattern.h > 48 ? "图片太长了，裁成接近正方形再试" : beads < 10 ? "图案太小，至少要 10 颗豆" : "");
+    draw(pattern);
+    renderMeta(pattern, beads);
+  }
+
+  function renderMeta(p, beads) {
+    const cm = (n) => (n * BEAD_MM / 10).toFixed(1);
+    $("meta").innerHTML = `<span><strong>${p.w} × ${p.h}</strong> 格</span>` +
+      `<span>成品约 <strong>${cm(p.w)} × ${cm(p.h)}</strong> cm</span>` +
+      `<span><strong>${beads}</strong> 颗豆 · <strong>${p.palette.length}</strong> 色</span>`;
+    const counts = p.palette.map((_, i) => p.cells.filter((c) => c === i + 1).length);
+    $("kit").innerHTML = p.palette.map((g, i) => {
+      const [r, gg, b] = PAL[g - 1];
+      return `<li><i style="background: rgb(${r} ${gg} ${b})"></i>${NAMES[g - 1]} ${counts[i]}</li>`;
+    }).join("");
+  }
+
+  function shade(rgb, k) { return `rgb(${rgb.map((v) => Math.max(0, Math.min(255, Math.round(v * k)))).join(" ")})`; }
+
+  function draw(p) {
+    const css = getComputedStyle(document.documentElement);
+    const box = Math.min(600, board.parentElement.clientWidth - 28);
+    const dpr = window.devicePixelRatio || 1;
+    const w = p ? p.w : 24, h = p ? p.h : 24;
+    const cell = Math.max(4, Math.floor(box / Math.max(w, h)));
+    board.width = w * cell * dpr; board.height = h * cell * dpr;
+    board.style.width = w * cell + "px";
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.clearRect(0, 0, w * cell, h * cell);
+    const peg = css.getPropertyValue("--peg").trim();
+    const r = cell * 0.46;
+    for (let y = 0; y < h; y++) {
+      for (let x = 0; x < w; x++) {
+        const cx = (x + 0.5) * cell, cy = (y + 0.5) * cell;
+        const c = p ? p.cells[y * w + x] : 0;
+        ctx.beginPath();
+        if (!c) {
+          ctx.arc(cx, cy, cell * 0.12, 0, Math.PI * 2);
+          ctx.fillStyle = peg;
+          ctx.fill();
+          continue;
+        }
+        const rgb = PAL[p.palette[c - 1] - 1];
+        ctx.arc(cx, cy + r * 0.18, r, 0, Math.PI * 2);
+        ctx.fillStyle = shade(rgb, 0.62);
+        ctx.fill();
+        ctx.beginPath();
+        ctx.arc(cx, cy, r, 0, Math.PI * 2);
+        ctx.fillStyle = shade(rgb, 1);
+        ctx.fill();
+        ctx.beginPath();
+        ctx.arc(cx, cy, r * 0.36, 0, Math.PI * 2);
+        ctx.fillStyle = shade(rgb, 0.55);
+        ctx.fill();
+        if (cell >= 8) {
+          ctx.beginPath();
+          ctx.arc(cx - r * 0.42, cy - r * 0.46, r * 0.14, 0, Math.PI * 2);
+          ctx.fillStyle = "rgb(255 255 255 / 0.55)";
+          ctx.fill();
+        }
+      }
+    }
+  }
+
+  async function copyCode() {
+    const text = $("code").value;
+    if (!text) return;
+    try {
+      await navigator.clipboard.writeText(text);
+      setStatus("已复制，去游戏里点右上角相框按钮", "ok");
+    } catch (e) {
+      const ta = $("code");
+      ta.focus();
+      ta.select();
+      let ok = false;
+      try { ok = document.execCommand("copy"); } catch (_) { ok = false; }
+      setStatus(ok ? "已复制，去游戏里点右上角相框按钮" : "已选中图纸码，请长按或按 Ctrl+C 复制", ok ? "ok" : "");
+    }
+  }
+
+  $("file").addEventListener("change", (e) => loadFile(e.target.files[0]));
+  ["size", "colors", "bg"].forEach((id) => $(id).addEventListener("input", schedule));
+  $("copy").addEventListener("click", copyCode);
+  const drop = $("drop");
+  drop.addEventListener("dragover", (e) => { e.preventDefault(); drop.classList.add("over"); });
+  drop.addEventListener("dragleave", () => drop.classList.remove("over"));
+  drop.addEventListener("drop", (e) => { e.preventDefault(); drop.classList.remove("over"); loadFile(e.dataTransfer.files[0]); });
+  document.addEventListener("paste", (e) => {
+    const item = [...(e.clipboardData?.items || [])].find((i) => i.type.startsWith("image/"));
+    if (item) loadFile(item.getAsFile());
+  });
+  window.addEventListener("resize", () => pattern && draw(pattern));
+  matchMedia("(prefers-color-scheme: dark)").addEventListener?.("change", () => pattern && draw(pattern));
+
+  loadImage("sample.png", "示例：草莓");
+})();
+</script>
